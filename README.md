@@ -15,4 +15,4 @@ The task of this project is to extract information from the text and to predict 
 The work is done by Linchen Deng, Kenny Jin and Runxin Gao.
 
 ## Summary
-There is a nice summary describing the details and the outcomes of this project. You can access the summary [here](summary/Project 2 Summary. Team1. Jin, Lin, Gao.pdf).
+There is a nice summary describing the details and the outcomes of this project. You can access the summary in the [summary](summary/) folder.
