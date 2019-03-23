@@ -71,24 +71,24 @@ yelp.tokens.dfm <- dfm(yelp.tokens, tolower = FALSE)
 
 
 ```{r}
-# Extract the most frequent 3000 unigram/bigram features
-counts = topfeatures(yelp.tokens.dfm, n = 3000, decreasing = TRUE, scheme = c("count",
+# Extract the most frequent 2500 unigram/bigram features
+counts = topfeatures(yelp.tokens.dfm, n = 2500, decreasing = TRUE, scheme = c("count",
   "docfreq"), groups = NULL)
 ```
 
 ```{r}
-top3000 = names(counts)
+top2500 = names(counts)
 ```
 
 ```{r}
-# Write the counts of the top 3000 bigrams
-#write.csv(counts, "top3000.csv")
+# Write the counts of the top 2500 bigrams
+#write.csv(counts, "top2500.csv")
 ```
 
 
 ```{r}
-# Construct dfm using top 3000 features
-yelp.tokens.dfm = dfm_select(yelp.tokens.dfm, pattern = top3000, selection = c("keep", "remove"),
+# Construct dfm using top 2500 features
+yelp.tokens.dfm = dfm_select(yelp.tokens.dfm, pattern = top2500, selection = c("keep", "remove"),
   valuetype = c("glob", "regex", "fixed"), case_insensitive = TRUE,
   min_nchar = 1L, max_nchar = 79L,
   verbose = quanteda_options("verbose"))
@@ -158,15 +158,15 @@ yelp.out.tokens.dfm <- dfm(yelp.out.tokens, tolower = FALSE)
 
 
 ```{r}
-# select the top 3000 features
-yelp.out.tokens.dfm = dfm_select(yelp.out.tokens.dfm, pattern = top3000, selection = c("keep", "remove"),
+# select the top 2500 features
+yelp.out.tokens.dfm = dfm_select(yelp.out.tokens.dfm, pattern = top2500, selection = c("keep", "remove"),
   valuetype = c("glob", "regex", "fixed"), case_insensitive = TRUE,
   min_nchar = 1L, max_nchar = 79L,
   verbose = quanteda_options("verbose"))
 ```
 
 ```{r}
-# The dimension should be 3000
+# The dimension should be 2500
 yelp.out.tokens.matrix.reduced <- as.matrix(yelp.out.tokens.dfm)
 dim(yelp.out.tokens.matrix.reduced)
 ```
@@ -291,7 +291,7 @@ summary(yelp.lm)
 
 
 ```{r}
-plot(yelp.lm)
+#plot(yelp.lm)
 ```
 
 
@@ -301,19 +301,19 @@ sqrt(mean(yelp.lm$residuals^2))
 
 
 ```{r}
-s <- summary(yelp.lm)
-p_value <- s$coefficients[-1,4]
-yelp_train_new <- yelp.tokens.tfidf.df
-low_pval_predictor_index <- which(names(yelp_train_new) %in% names(p_value)[which(p_value<0.001)])
-Ipt_predctors <- cbind(yelp$stars,yelp_train_new[,low_pval_predictor_index])
-write.csv(Ipt_predctors,"yelp_important_lowpvalue_predictors.csv", row.names = FALSE)
+#s <- summary(yelp.lm)
+#p_value <- s$coefficients[-1,4]
+#yelp_train_new <- yelp.tokens.tfidf.df
+#low_pval_predictor_index <- which(names(yelp_train_new) %in% names(p_value)[which(p_value<0.001)])
+#Ipt_predctors <- cbind(yelp$stars,yelp_train_new[,low_pval_predictor_index])
+#write.csv(Ipt_predctors,"yelp_important_lowpvalue_predictors.csv", row.names = FALSE)
 ```
 
 ```{r}
-meanscore <- rep(0,5)
-names(meanscore) <- 1:5
-for (i in 1:5) meanscore[i] <- mean(yelp.tokens.tfidf.df$tough[yelp$stars==i])
-barplot(meanscore, xlab='Stars', ylab="Tough")
+#meanscore <- rep(0,5)
+#names(meanscore) <- 1:5
+#for (i in 1:5) meanscore[i] <- mean(yelp.tokens.tfidf.df$tough[yelp$stars==i])
+#barplot(meanscore, xlab='Stars', ylab="Tough")
 ```
 
 
@@ -323,7 +323,13 @@ star_out <- data.frame(Id=yelp_out$Id, Expected=predict(yelp.lm, newdata = yelp.
 ```
 
 ```{r}
-write.csv(star_out,"yelp_out_prediction_tfidf_3000_remove_large_p.csv", row.names = FALSE)
+star_out$Expected[star_out$Expected > 5] = 5
+star_out$Expected[star_out$Expected < 1] = 1
+```
+
+
+```{r}
+write.csv(star_out,"yelp_out_prediction_tfidf_2500.csv", row.names = FALSE)
 ```
 
 
