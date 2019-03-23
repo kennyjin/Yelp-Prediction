@@ -16,3 +16,6 @@ The work is done by Linchen Deng, Kenny Jin and Runxin Gao.
 
 ## Summary
 There is a nice summary describing the details and the outcomes of this project. You can access the summary in the [summary](summary/) folder.
+
+## Usage
+You need to have RStudio installed on your computer. Put [Yelp_test.csv](Yelp_test.csv), [Yelp_train.csv](Yelp_train.csv), [Yelp_validate.csv](Yelp_train.csv) and [Yelp_prediction_tfidf_final.Rmd](Yelp_prediction_tfidf_final.Rmd) in the same folder, and run the Rmd file. The output will be a csv file containing the star predictions of the validate and test file combined.
