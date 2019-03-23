@@ -1,0 +1,365 @@
+---
+title: "Yelp Prediction"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+```{r}
+# Read data and clean up some R formatting issues
+yelp <- read.csv("Yelp_train.csv")
+yelp_test <- read.csv("Yelp_test.csv")
+yelp_validate <- read.csv("Yelp_validate.csv")
+yelp_out <- rbind(yelp_test,yelp_validate)
+
+# Some basic data cleaning
+# get rid of the first column, which is the original sample ID
+yelp <- yelp[,-1]
+yelp_out <- yelp_out[,-1]
+
+# convert text into actual strings
+yelp$text <- as.character(yelp$text)
+yelp_out$text <- as.character(yelp_out$text)
+yelp$categories <- as.character(yelp$categories)
+yelp_out$categories <- as.character(yelp_out$categories)
+
+# Refactorize yelp_out city and restaurant names after binding
+yelp_out$name <- as.character(yelp_out$name)
+yelp_out$city <- as.character(yelp_out$city)
+yelp_out$city <- factor(yelp_out$city)
+```
+
+```{r}
+# Tokenize texts
+library(quanteda)
+yelp.tokens <- tokens(yelp$text, what = "word", 
+                       remove_numbers = TRUE, remove_punct = TRUE,
+                       remove_symbols = TRUE, remove_hyphens = TRUE)
+```
+
+```{r}
+# convert to lower case
+yelp.tokens = tokens_tolower(yelp.tokens)
+# remove stop words
+yelp.tokens <- tokens_select(yelp.tokens, stopwords(), 
+                              selection = "remove")
+# stem words, e.g, stops -> stop
+yelp.tokens <- tokens_wordstem(yelp.tokens, language = "english")
+```
+
+```{r}
+# construct unigram/digram
+yelp.tokens <- tokens_ngrams(yelp.tokens, n = 1:2)
+```
+
+
+```{r}
+# Transform to dfm
+yelp.tokens.dfm <- dfm(yelp.tokens, tolower = FALSE)
+```
+
+```{r}
+#nfeat(yelp.tokens.dfm)
+```
+```{r}
+#counts.all = topfeatures(yelp.tokens.dfm, n = 1015049, decreasing = TRUE, scheme = c("count",
+#  "docfreq"), groups = NULL)
+#all.names = names(counts.all)
+#write.csv(all.names, "allfeatures.csv")
+```
+
+
+```{r}
+# Extract the most frequent 2500 unigram/bigram features
+counts = topfeatures(yelp.tokens.dfm, n = 2500, decreasing = TRUE, scheme = c("count",
+  "docfreq"), groups = NULL)
+```
+
+```{r}
+top2500 = names(counts)
+```
+
+```{r}
+# Write the counts of the top 2500 bigrams
+#write.csv(counts, "top2500.csv")
+```
+
+
+```{r}
+# Construct dfm using top 2500 features
+yelp.tokens.dfm = dfm_select(yelp.tokens.dfm, pattern = top2500, selection = c("keep", "remove"),
+  valuetype = c("glob", "regex", "fixed"), case_insensitive = TRUE,
+  min_nchar = 1L, max_nchar = 79L,
+  verbose = quanteda_options("verbose"))
+```
+
+```{r}
+# transform the fdm to a matrix
+yelp.tokens.matrix.reduced <- as.matrix(yelp.tokens.dfm)
+dim(yelp.tokens.matrix.reduced)
+```
+
+```{r}
+yelp.tokens.df <- data.frame(yelp.tokens.matrix.reduced)
+```
+
+```{r}
+# Add stars
+yelp.tokens.df$stars = yelp$stars
+```
+
+```{r}
+# Add additional features
+yelp.tokens.df <- cbind(yelp[,c("useful","funny","nword","sentiment")], yelp.tokens.df)
+```
+
+```{r}
+# transform nword to log(nword)
+yelp.tokens.df$lognword = log(yelp.tokens.df$nword)
+yelp.tokens.df$nword = NULL
+```
+
+```{r}
+dim(yelp.tokens.df)
+```
+
+```{r}
+# Write to file for future use
+#write.csv(yelp.tokens.df, "yelp_train_combined.csv")
+```
+
+
+```{r}
+# This uses a combination of biagram and unigram
+yelp.out.tokens <- tokens(yelp_out$text, what = "word", 
+                       remove_numbers = TRUE, remove_punct = TRUE,
+                       remove_symbols = TRUE, remove_hyphens = TRUE)
+```
+
+```{r}
+# convert to lower case
+yelp.out.tokens = tokens_tolower(yelp.out.tokens)
+# remove stop words
+yelp.out.tokens <- tokens_select(yelp.out.tokens, stopwords(), 
+                              selection = "remove")
+# stem words, e.g, stops -> stop
+yelp.out.tokens <- tokens_wordstem(yelp.out.tokens, language = "english")
+```
+
+```{r}
+yelp.out.tokens <- tokens_ngrams(yelp.out.tokens, n = 1:2)
+```
+
+```{r}
+# Transform to dfm
+yelp.out.tokens.dfm <- dfm(yelp.out.tokens, tolower = FALSE)
+```
+
+
+```{r}
+# select the top 2500 features
+yelp.out.tokens.dfm = dfm_select(yelp.out.tokens.dfm, pattern = top2500, selection = c("keep", "remove"),
+  valuetype = c("glob", "regex", "fixed"), case_insensitive = TRUE,
+  min_nchar = 1L, max_nchar = 79L,
+  verbose = quanteda_options("verbose"))
+```
+
+```{r}
+# The dimension should be 2500
+yelp.out.tokens.matrix.reduced <- as.matrix(yelp.out.tokens.dfm)
+dim(yelp.out.tokens.matrix.reduced)
+```
+
+```{r}
+yelp.out.tokens.df <- data.frame(yelp.out.tokens.matrix.reduced)
+```
+
+```{r}
+# Write to file for future use
+#write.csv(yelp.out.tokens.df,"yelp_out_combined.csv")
+```
+
+```{r}
+# Add features to the dataframe
+yelp.out.tokens.df = cbind(yelp_out[,c("useful","funny","nword","sentiment")], yelp.out.tokens.df)
+```
+
+```{r}
+# Transform nword to log(nword)
+yelp.out.tokens.df$lognword = log(yelp.out.tokens.df$nword)
+yelp.out.tokens.df$nword = NULL
+```
+
+```{r}
+term.frequency <- function(row) {
+  row / sum(row)
+}
+
+# Our function for calculating inverse document frequency (IDF)
+inverse.doc.freq <- function(col) {
+  corpus.size <- length(col)
+  doc.count <- length(which(col > 0))
+  
+  log10(corpus.size / doc.count)
+}
+
+# Our function for calculating TF-IDF.
+tf.idf <- function(x, idf) {
+  x * idf
+}
+```
+
+
+```{r}
+# First step, normalize all documents via TF.
+yelp.tokens.df <- apply(yelp.tokens.matrix.reduced, 1, term.frequency)
+
+```
+
+```{r}
+# Second step, calculate the IDF vector that we will use - both
+# for training data and for test data!
+yelp.tokens.idf <- apply(yelp.tokens.matrix.reduced, 2, inverse.doc.freq)
+```
+
+```{r}
+# Lastly, calculate TF-IDF for our training corpus.
+yelp.tokens.tfidf <-  apply(yelp.tokens.df, 2, tf.idf, idf = yelp.tokens.idf)
+```
+
+```{r}
+# Transpose the matrix
+yelp.tokens.tfidf <- t(yelp.tokens.tfidf)
+```
+
+```{r}
+# Write tfidf to csv
+#write.csv(yelp.tokens.tfidf[1:100, 1:100], "tfidf.csv")
+```
+
+
+```{r}
+# First step, normalize all documents via TF.
+yelp.out.tokens.df <- apply(yelp.out.tokens.matrix.reduced, 1, term.frequency)
+
+```
+
+```{r}
+# Second step, calculate the IDF vector that we will use - both
+# for training data and for test data!
+yelp.out.tokens.idf <- apply(yelp.out.tokens.matrix.reduced, 2, inverse.doc.freq)
+```
+
+```{r}
+# Lastly, calculate TF-IDF for our training corpus.
+yelp.out.tokens.tfidf <-  apply(yelp.out.tokens.df, 2, tf.idf, idf = yelp.out.tokens.idf)
+```
+
+```{r}
+# Transpose the matrix
+yelp.out.tokens.tfidf <- t(yelp.out.tokens.tfidf)
+```
+
+
+
+```{r}
+yelp.out.tokens.tfidf.df = data.frame(yelp.out.tokens.tfidf)
+yelp.out.tokens.tfidf.df = cbind(yelp_out[,c("useful","funny","nword","sentiment")], yelp.out.tokens.tfidf.df)
+```
+
+```{r}
+yelp.tokens.tfidf.df = data.frame(yelp.tokens.tfidf)
+yelp.tokens.tfidf.df = cbind(yelp[,c("useful","funny","nword","sentiment")], yelp.tokens.tfidf.df)
+
+```
+
+```{r}
+yelp.tokens.tfidf.df$stars = yelp$stars
+```
+
+
+
+```{r}
+# fit the linear model
+#yelp.lm = lm(stars ~ ., data = yelp.tokens.tfidf.df)
+```
+
+```{r}
+#summary(yelp.lm)
+```
+
+
+```{r}
+#plot(yelp.lm)
+```
+
+
+```{r}
+#sqrt(mean(yelp.lm$residuals^2))
+```
+
+
+```{r}
+#s <- summary(yelp.lm)
+#p_value <- s$coefficients[-1,4]
+#yelp_train_new <- yelp.tokens.tfidf.df
+#low_pval_predictor_index <- which(names(yelp_train_new) %in% names(p_value)[which(p_value<0.001)])
+#Ipt_predctors <- cbind(yelp$stars,yelp_train_new[,low_pval_predictor_index])
+#write.csv(Ipt_predctors,"yelp_important_lowpvalue_predictors.csv", row.names = FALSE)
+```
+
+```{r}
+#meanscore <- rep(0,5)
+#names(meanscore) <- 1:5
+#for (i in 1:5) meanscore[i] <- mean(yelp.tokens.tfidf.df$tough[yelp$stars==i])
+#barplot(meanscore, xlab='Stars', ylab="Tough")
+```
+
+```{r}
+Ymat = yelp.tokens.tfidf.df$stars
+yelp.tokens.tfidf.df$stars = NULL
+```
+
+```{r}
+Xmat = as.matrix(yelp.tokens.tfidf.df)
+```
+
+```{r}
+library(glmnet)
+set.seed(0)
+yelp.ridge.cv <- cv.glmnet(Xmat, Ymat, alpha=0, nfold=5)
+
+```
+
+```{r}
+plot(yelp.ridge.cv)
+```
+
+```{r}
+Xmatnew = as.matrix(yelp.out.tokens.tfidf.df)
+```
+
+
+```{r}
+predict(yelp.ridge.cv, newx = Xmatnew, s = "lambda.min") #prediction
+```
+
+
+
+```{r}
+# Make predictions
+star_out <- data.frame(Id=yelp_out$Id, Expected=predict(yelp.lm, newdata = yelp.out.tokens.tfidf.df))
+```
+
+```{r}
+star_out$Expected[star_out$Expected > 5] = 5
+star_out$Expected[star_out$Expected < 1] = 1
+```
+
+
+```{r}
+write.csv(star_out,"yelp_out_prediction_tfidf_2500.csv", row.names = FALSE)
+```
+
+
